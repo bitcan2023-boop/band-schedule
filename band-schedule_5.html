@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎸 バンドスケジュール</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif; background:#0F0F14; min-height:100vh; color:#E8E8F0; }
+    ::-webkit-scrollbar{width:6px} ::-webkit-scrollbar-track{background:#1A1A24} ::-webkit-scrollbar-thumb{background:#3A3A50;border-radius:3px}
+
+    .wrap { max-width:900px; margin:0 auto; padding:20px 12px 40px; }
+
+    .header { display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+    .header-icon { font-size:26px; }
+    .header-title { font-family:'Space Grotesk',sans-serif; font-size:20px; font-weight:700; letter-spacing:.02em; color:#fff; }
+    .header-sub { font-size:10px; color:#555; letter-spacing:.1em; }
+    .reload-btn { margin-left:auto; background:#1E1E2A; border:1px solid #2A2A3A; color:#AAA; border-radius:8px; padding:6px 12px; font-size:11px; cursor:pointer; transition:background .13s; }
+    .reload-btn:hover { background:#2A2A3E; }
+
+    .filters { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+    .fb { display:inline-flex; align-items:center; gap:4px; padding:5px 12px; border-radius:20px; font-size:11px; font-weight:600; border:1px solid #2A2A34; background:#1A1A24; color:#888; cursor:pointer; transition:all .13s; outline:none; }
+    .fb:hover { opacity:.82; }
+    .fb.active { color:#fff; }
+
+    .main-grid { display:grid; grid-template-columns:1fr 300px; gap:16px; align-items:start; }
+    .side-panel { display:flex; flex-direction:column; gap:12px; }
+
+    .cal-card { background:#16161F; border-radius:14px; overflow:hidden; border:1px solid #2A2A3A; }
+    .month-nav { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid #2A2A3A; }
+    .month-label { font-family:'Space Grotesk',sans-serif; font-size:17px; font-weight:700; color:#fff; }
+    .nb { background:#1E1E2A; border:1px solid #2A2A3A; color:#AAA; border-radius:8px; width:32px; height:32px; font-size:16px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:background .13s; outline:none; }
+    .nb:hover { background:#2A2A3E; }
+
+    .day-headers { display:grid; grid-template-columns:repeat(7,1fr); border-bottom:1px solid #2A2A3A; }
+    .day-head { text-align:center; padding:8px 2px; font-size:10px; font-weight:700; letter-spacing:.04em; color:#555; }
+    .day-head.sun { color:#FF6B6B; } .day-head.sat { color:#6B9EFF; }
+
+    .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); }
+    .cal-cell { border-right:1px solid #1E1E2A; border-bottom:1px solid #1E1E2A; background:#16161F; }
+    .cal-cell.today-cell { background:#181828; }
+    .cal-cell.empty { opacity:0; pointer-events:none; }
+    .cal-cell-inner { min-height:72px; padding:5px 3px; }
+    .day-num { font-size:11px; font-weight:400; margin-bottom:3px; padding-left:2px; color:#666; }
+    .day-num.sun{color:#FF6B6B} .day-num.sat{color:#6B9EFF} .day-num.today{color:#fff}
+    .today-badge { background:#5A5AFF; color:#fff; border-radius:50%; width:18px; height:18px; font-size:10px; display:inline-flex; align-items:center; justify-content:center; }
+    .ev-pills { display:flex; flex-direction:column; gap:2px; }
+    .ep { border-radius:3px; padding:2px 4px; font-size:9px; font-weight:700; color:#fff; line-height:1.4; display:flex; align-items:center; gap:2px; border:1.5px solid transparent; cursor:pointer; transition:all .13s; overflow:hidden; }
+    .ep:hover { opacity:.82; transform:translateY(-1px); }
+    .ep.selected { border-color:#fff; }
+    .pill-text { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .pill-dot { display:none; }
+
+    .hint-card { background:#16161F; border-radius:14px; border:1px solid #2A2A3A; padding:16px; text-align:center; color:#444; font-size:11px; }
+    .detail-card { background:#16161F; border-radius:14px; overflow:hidden; }
+    .detail-header { padding:12px 14px; display:flex; justify-content:space-between; align-items:flex-start; }
+    .detail-emoji { font-size:18px; }
+    .detail-title { font-size:14px; font-weight:700; color:#fff; margin-top:3px; }
+    .detail-date { font-size:10px; color:rgba(255,255,255,.75); margin-top:2px; }
+    .cb { background:rgba(0,0,0,.25); border:none; color:#fff; border-radius:6px; width:26px; height:26px; font-size:12px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:background .13s; outline:none; flex-shrink:0; }
+    .cb:hover { background:#2A2A3E; }
+    .detail-body { padding:12px 14px; display:flex; flex-direction:column; gap:10px; }
+    .detail-row-label { font-size:9px; color:#555; letter-spacing:.06em; margin-bottom:2px; }
+    .detail-row-val { font-size:13px; color:#DDD; }
+    .status-badge { font-size:11px; font-weight:700; border-radius:20px; padding:3px 10px; display:inline-block; }
+    .note-val { font-size:12px; color:#AAA; line-height:1.5; white-space:pre-line; }
+
+    .list-card { background:#16161F; border-radius:14px; border:1px solid #2A2A3A; overflow:hidden; }
+    .list-header { padding:10px 14px; border-bottom:1px solid #2A2A3A; font-size:10px; font-weight:700; color:#555; letter-spacing:.08em; }
+    .list-empty { padding:18px; text-align:center; color:#444; font-size:11px; }
+    .lc { padding:9px 14px; border-bottom:1px solid #1E1E2A; display:flex; gap:10px; align-items:center; cursor:pointer; transition:background .13s; }
+    .lc:hover,.lc.active { background:#1E1E2C; }
+    .lc-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+    .lc-info { min-width:0; flex:1; }
+    .lc-title { font-size:11px; font-weight:600; color:#DDD; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .lc-sub { font-size:9px; color:#555; margin-top:1px; }
+    .lc-status { font-size:9px; font-weight:700; flex-shrink:0; }
+
+    /* Loading / error */
+    .loading-bar { background:#1A1A2E; border-radius:14px; padding:24px; text-align:center; color:#555; font-size:12px; }
+    .loading-bar .spinner { display:inline-block; width:20px; height:20px; border:2px solid #333; border-top-color:#5A5AFF; border-radius:50%; animation:spin .7s linear infinite; margin-bottom:8px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .error-bar { background:#2A1A1A; border:1px solid #5A2A2A; border-radius:14px; padding:16px; color:#FF8080; font-size:12px; text-align:center; margin-bottom:16px; }
+
+    @media(max-width:640px){
+      .main-grid{grid-template-columns:1fr}
+      .side-panel{order:-1}
+      .cal-cell-inner{min-height:56px}
+      .day-num{font-size:10px}
+      .pill-text{display:none}
+      .pill-dot{display:inline-block}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="header-icon">🎸</div>
+    <div>
+      <div class="header-title">BAND SCHEDULE</div>
+      <div class="header-sub">スケジュール管理カレンダー</div>
+    </div>
+    <button class="reload-btn" id="reloadBtn">↻ 更新</button>
+  </div>
+
+  <div id="errorBar"></div>
+  <div class="filters" id="filters"></div>
+
+  <div class="main-grid">
+    <div class="cal-card">
+      <div class="month-nav">
+        <button class="nb" id="prevBtn">‹</button>
+        <div class="month-label" id="monthLabel"></div>
+        <button class="nb" id="nextBtn">›</button>
+      </div>
+      <div class="day-headers">
+        <div class="day-head sun">日</div><div class="day-head">月</div><div class="day-head">火</div>
+        <div class="day-head">水</div><div class="day-head">木</div><div class="day-head">金</div>
+        <div class="day-head sat">土</div>
+      </div>
+      <div class="cal-grid" id="calGrid">
+        <div style="grid-column:1/-1">
+          <div class="loading-bar"><div class="spinner"></div><br>スケジュールを読み込み中...</div>
+        </div>
+      </div>
+    </div>
+    <div class="side-panel">
+      <div id="detailPanel"><div class="hint-card">予定をタップして詳細表示</div></div>
+      <div class="list-card">
+        <div class="list-header" id="listHeader">読み込み中...</div>
+        <div id="listBody"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ======================================================
+// ★ Google Apps Script の URL（ここだけ変更すればOK）
+// ======================================================
+const API_URL = "https://script.google.com/macros/s/AKfycbz3nudsSdELM9Oh4T5NfMG_w1DQ4rB3RpgR0OgYHt4oMh3pACPwAhcS8eN2Yi7AEz1U/exec";
+
+const TYPE_META = {
+  practice:  { label:"リハ",          emoji:"🎵", color:"#4A90D9" },
+  live:      { label:"ライブ",         emoji:"🎤", color:"#E8395E" },
+  recording: { label:"レコーディング", emoji:"🎙️", color:"#27AE6E" },
+  photo:     { label:"撮影",           emoji:"📸", color:"#D4860A" },
+};
+const STATUS_META = {
+  "確定":   { color:"#27AE6E", bg:"#1A3A2A" },
+  "調整中": { color:"#E8A020", bg:"#3A2E10" },
+  "検討中": { color:"#888",    bg:"#2A2A2A" },
+};
+const MONTHS_JP = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+const DAYS_JP   = ["日","月","火","水","木","金","土"];
+
+const todayDate = new Date();
+let year = todayDate.getFullYear(), month = todayDate.getMonth();
+let filter = "all", selected = null, EVENTS = [];
+
+// ── データ取得 ─────────────────────────────────────────
+async function fetchEvents() {
+  document.getElementById("errorBar").innerHTML = "";
+  document.getElementById("calGrid").innerHTML =
+    `<div style="grid-column:1/-1"><div class="loading-bar"><div class="spinner"></div><br>スケジュールを読み込み中...</div></div>`;
+  try {
+    const res = await fetch(API_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const raw = await res.json();
+    // ヘッダーの揺れ（改行・日本語）を吸収して正規化
+    function pick(r, ...keys) {
+      for (const k of Object.keys(r)) {
+        const flat = k.replace(/\n.*/,"").trim();
+        if (keys.includes(flat) || keys.includes(k)) return String(r[k] ?? "").trim();
+      }
+      return "";
+    }
+    EVENTS = raw.map((r, i) => ({
+      id:     pick(r,"ID","id") || i+1,
+      date:   pick(r,"date","日付"),
+      type:   pick(r,"type","種別") || "practice",
+      title:  pick(r,"title","タイトル"),
+      place:  pick(r,"place","場所"),
+      start:  pick(r,"start","開始時間"),
+      end:    pick(r,"end","終了時間"),
+      cost:   pick(r,"cost","費用"),
+      status: pick(r,"status","ステータス") || "確定",
+      note:   pick(r,"note","メモ"),
+    })).filter(e => e.date && e.title);
+    renderAll();
+  } catch(e) {
+    document.getElementById("errorBar").innerHTML =
+      `<div class="error-bar">⚠️ データの読み込みに失敗しました。<br>Apps ScriptのURLとデプロイ設定を確認してください。<br><small>${e.message}</small></div>`;
+    document.getElementById("calGrid").innerHTML = "";
+    renderCalendar();
+  }
+}
+
+// ── フィルター ─────────────────────────────────────────
+function renderFilters() {
+  const cont = document.getElementById("filters");
+  cont.innerHTML = "";
+  [["all","すべて","🗓️","#5A5AFF"],
+   ...Object.entries(TYPE_META).map(([k,v])=>[k,v.label,v.emoji,v.color])
+  ].forEach(([key,label,emoji,col]) => {
+    const btn = document.createElement("button");
+    btn.className = "fb" + (filter===key?" active":"");
+    btn.innerHTML = `<span>${emoji}</span><span>${label}</span>`;
+    btn.style.cssText = `border-color:${filter===key?col:"#2A2A34"};background:${filter===key?col:"#1A1A24"};color:${filter===key?"#fff":"#888"}`;
+    btn.onclick = () => { filter=key; selected=null; renderAll(); };
+    cont.appendChild(btn);
+  });
+}
+
+// ── カレンダー ─────────────────────────────────────────
+function renderCalendar() {
+  document.getElementById("monthLabel").textContent = `${year}年 ${MONTHS_JP[month]}`;
+  const grid = document.getElementById("calGrid");
+  grid.innerHTML = "";
+  const firstDay = new Date(year, month, 1).getDay();
+  const days     = new Date(year, month+1, 0).getDate();
+
+  for (let i=0; i<firstDay; i++) {
+    const b = document.createElement("div");
+    b.className = "cal-cell empty";
+    b.innerHTML = `<div class="cal-cell-inner"></div>`;
+    grid.appendChild(b);
+  }
+  for (let d=1; d<=days; d++) {
+    const ds  = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const col = (firstDay+d-1)%7;
+    const isT = todayDate.getFullYear()===year && todayDate.getMonth()===month && todayDate.getDate()===d;
+    const evs = EVENTS.filter(e => e.date===ds && (filter==="all"||e.type===filter));
+
+    const cell = document.createElement("div");
+    cell.className = "cal-cell"+(isT?" today-cell":"");
+
+    const numCls = "day-num"+(isT?" today":col===0?" sun":col===6?" sat":"");
+    const numHtml = isT ? `<span class="today-badge">${d}</span>` : d;
+    const pillsHtml = evs.map(ev =>
+      `<div class="ep${selected&&selected.id==ev.id?" selected":""}" style="background:${(TYPE_META[ev.type]||TYPE_META.practice).color}" data-id="${ev.id}">
+        <span>${(TYPE_META[ev.type]||TYPE_META.practice).emoji}</span>
+        <span class="pill-text">${ev.title}</span>
+        <span class="pill-dot">●</span>
+      </div>`
+    ).join("");
+
+    cell.innerHTML = `<div class="cal-cell-inner">
+      <div class="${numCls}">${numHtml}</div>
+      <div class="ev-pills">${pillsHtml}</div>
+    </div>`;
+    cell.querySelectorAll(".ep").forEach(el => {
+      el.addEventListener("click", () => {
+        const ev = EVENTS.find(e=>e.id==el.dataset.id);
+        selected = (selected&&selected.id==ev.id) ? null : ev;
+        renderAll();
+      });
+    });
+    grid.appendChild(cell);
+  }
+}
+
+// ── 詳細パネル ─────────────────────────────────────────
+function renderDetail() {
+  const panel = document.getElementById("detailPanel");
+  if (!selected) { panel.innerHTML=`<div class="hint-card">予定をタップして詳細表示</div>`; return; }
+  const ev=selected, tm=TYPE_META[ev.type]||TYPE_META.practice, sm=STATUS_META[ev.status]||STATUS_META["確定"];
+  const dayStr = DAYS_JP[new Date(ev.date).getDay()];
+  panel.innerHTML = `
+    <div class="detail-card" style="border:1px solid ${tm.color}55">
+      <div class="detail-header" style="background:${tm.color}">
+        <div>
+          <div class="detail-emoji">${tm.emoji}</div>
+          <div class="detail-title">${ev.title}</div>
+          <div class="detail-date">${ev.date}（${dayStr}）</div>
+        </div>
+        <button class="cb" id="closeDetail">✕</button>
+      </div>
+      <div class="detail-body">
+        <div><div class="detail-row-label">📍 場所</div><div class="detail-row-val">${ev.place||"—"}</div></div>
+        <div><div class="detail-row-label">⏰ 時間</div><div class="detail-row-val">${ev.start||"—"} 〜 ${ev.end||"—"}</div></div>
+        <div><div class="detail-row-label">💰 費用</div><div class="detail-row-val">${ev.cost||"—"}</div></div>
+        <div>
+          <div class="detail-row-label">📌 ステータス</div>
+          <span class="status-badge" style="color:${sm.color};background:${sm.bg}">${ev.status}</span>
+        </div>
+        ${ev.note?`<div><div class="detail-row-label">📝 メモ</div><div class="note-val">${ev.note.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div></div>`:""}
+      </div>
+    </div>`;
+  document.getElementById("closeDetail").onclick = ()=>{ selected=null; renderAll(); };
+}
+
+// ── 月リスト ───────────────────────────────────────────
+function renderList() {
+  const evs = EVENTS
+    .filter(e=>{ const d=new Date(e.date); return d.getFullYear()===year&&d.getMonth()===month; })
+    .filter(e=>filter==="all"||e.type===filter)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  document.getElementById("listHeader").textContent = `${MONTHS_JP[month]}のスケジュール（${evs.length}件）`;
+  const body = document.getElementById("listBody");
+  if (!evs.length) { body.innerHTML=`<div class="list-empty">予定なし</div>`; return; }
+  body.innerHTML = evs.map(ev=>{
+    const tm=TYPE_META[ev.type]||TYPE_META.practice, sm=STATUS_META[ev.status]||STATUS_META["確定"];
+    return `<div class="lc${selected&&selected.id==ev.id?" active":""}" data-id="${ev.id}">
+      <div class="lc-icon" style="background:${tm.color}22">${tm.emoji}</div>
+      <div class="lc-info">
+        <div class="lc-title">${ev.title}</div>
+        <div class="lc-sub">${new Date(ev.date).getDate()}日 ${ev.start}〜 · ${ev.place}</div>
+      </div>
+      <span class="lc-status" style="color:${sm.color}">${ev.status}</span>
+    </div>`;
+  }).join("");
+  body.querySelectorAll(".lc").forEach(el=>{
+    el.addEventListener("click",()=>{
+      const ev=EVENTS.find(e=>e.id==el.dataset.id);
+      selected=(selected&&selected.id==ev.id)?null:ev;
+      renderAll();
+    });
+  });
+}
+
+function renderAll() { renderFilters(); renderCalendar(); renderDetail(); renderList(); }
+
+document.getElementById("prevBtn").onclick = ()=>{ if(month===0){year--;month=11;}else month--; selected=null; renderAll(); };
+document.getElementById("nextBtn").onclick = ()=>{ if(month===11){year++;month=0;}else month++; selected=null; renderAll(); };
+document.getElementById("reloadBtn").onclick = fetchEvents;
+
+fetchEvents();
+</script>
+</body>
+</html>
