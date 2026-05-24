@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎸 Band Schedule</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #080810;
+      --surface:   #0E0E1A;
+      --surface2:  #141422;
+      --border:    rgba(255,255,255,0.07);
+      --border2:   rgba(255,255,255,0.04);
+      --text:      #E8E8F2;
+      --muted:     #50506A;
+      --muted2:    #30304A;
+      --accent:    #6C63FF;
+
+      --practice:  #3B82F6;
+      --live:      #EF4444;
+      --recording: #10B981;
+      --photo:     #F59E0B;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* Subtle grid bg */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(108,99,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(108,99,255,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--muted2); border-radius: 2px; }
+
+    .app { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 36px 24px 60px; }
+
+    /* ── Header ── */
+    .header {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      margin-bottom: 32px; padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header-left { display: flex; align-items: flex-end; gap: 16px; }
+    .header-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      background: linear-gradient(135deg, #6C63FF, #A78BFA);
+      display: flex; align-items: center; justify-content: center; font-size: 24px;
+      box-shadow: 0 8px 24px rgba(108,99,255,0.35);
+    }
+    .header-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 42px; letter-spacing: 0.06em;
+      line-height: 1; color: #fff;
+    }
+    .header-sub { font-size: 11px; color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 4px; }
+    .reload-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--muted); border-radius: 10px; padding: 8px 16px;
+      font-size: 12px; font-family: 'DM Sans', sans-serif; font-weight: 500;
+      cursor: pointer; transition: all 0.2s; letter-spacing: 0.04em;
+    }
+    .reload-btn:hover { border-color: var(--accent); color: var(--text); }
+
+    /* ── Filters ── */
+    .filters { display: flex; gap: 8px; margin-bottom: 28px; flex-wrap: wrap; }
+    .fb {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 16px; border-radius: 100px;
+      font-size: 12px; font-weight: 500; font-family: 'DM Sans', sans-serif;
+      border: 1px solid var(--border); background: transparent; color: var(--muted);
+      cursor: pointer; transition: all 0.2s; outline: none; letter-spacing: 0.02em;
+    }
+    .fb:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+    .fb.active { color: #fff; box-shadow: 0 0 20px -4px currentColor; }
+
+    /* ── Layout ── */
+    .layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+    .side { display: flex; flex-direction: column; gap: 16px; }
+
+    /* ── Calendar ── */
+    .cal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; overflow: hidden;
+    }
+    .cal-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 24px; border-bottom: 1px solid var(--border);
+    }
+    .cal-nav-title {
+      font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 0.06em; color: #fff;
+    }
+    .nav-btn {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--muted); font-size: 18px;
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.2s; outline: none;
+    }
+    .nav-btn:hover { border-color: var(--accent); color: var(--text); }
+
+    .cal-days {
+      display: grid; grid-template-columns: repeat(7,1fr);
+      border-bottom: 1px solid var(--border);
+    }
+    .cal-day-head {
+      text-align: center; padding: 12px 4px;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .cal-day-head.sun { color: #EF4444; }
+    .cal-day-head.sat { color: #3B82F6; }
+
+    .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); }
+    .cal-cell {
+      border-right: 1px solid var(--border2);
+      border-bottom: 1px solid var(--border2);
+      min-height: 100px; padding: 10px 8px;
+      transition: background 0.15s;
+    }
+    .cal-cell:hover { background: rgba(255,255,255,0.02); }
+    .cal-cell.today-bg { background: rgba(108,99,255,0.06); }
+    .cal-cell.empty { opacity: 0; pointer-events: none; }
+
+    .cell-num {
+      font-size: 13px; font-weight: 400; color: var(--muted);
+      margin-bottom: 6px; display: flex; align-items: center;
+    }
+    .cell-num.sun { color: rgba(239,68,68,0.7); }
+    .cell-num.sat { color: rgba(59,130,246,0.7); }
+    .cell-num.today { color: #fff; }
+    .today-dot {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 600;
+      box-shadow: 0 0 12px rgba(108,99,255,0.6);
+    }
+
+    .ev-list { display: flex; flex-direction: column; gap: 3px; }
+    .ev-chip {
+      border-radius: 5px; padding: 3px 7px;
+      font-size: 10px; font-weight: 500; color: #fff;
+      cursor: pointer; transition: all 0.15s;
+      border: 1.5px solid transparent;
+      display: flex; align-items: flex-start; gap: 3px;
+      white-space: pre-wrap; word-break: break-all; line-height: 1.4;
+    }
+    .ev-chip:hover { filter: brightness(1.15); transform: translateY(-1px); }
+    .ev-chip.sel { border-color: rgba(255,255,255,0.7); box-shadow: 0 0 12px -2px currentColor; }
+    .chip-emoji { flex-shrink: 0; font-size: 10px; margin-top: 1px; }
+    .chip-text { overflow: hidden; }
+
+    /* ── Detail ── */
+    .hint {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 20px; text-align: center;
+      color: var(--muted); font-size: 12px; letter-spacing: 0.04em;
+    }
+    .detail {
+      background: var(--surface); border-radius: 16px; overflow: hidden;
+    }
+    .detail-head {
+      padding: 18px 20px;
+      display: flex; justify-content: space-between; align-items: flex-start;
+    }
+    .detail-type-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+      opacity: 0.8; margin-bottom: 6px; display: flex; align-items: center; gap: 5px;
+    }
+    .detail-title { font-size: 18px; font-weight: 600; color: #fff; line-height: 1.3; }
+    .detail-date { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 4px; }
+    .close-btn {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: rgba(0,0,0,0.2); border: none; color: rgba(255,255,255,0.6);
+      font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0; transition: background 0.15s; outline: none;
+    }
+    .close-btn:hover { background: rgba(0,0,0,0.4); }
+    .detail-body { padding: 0 20px 20px; display: flex; flex-direction: column; gap: 14px; }
+    .detail-row {}
+    .detail-label { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 3px; }
+    .detail-val { font-size: 14px; color: var(--text); white-space: pre-line; }
+    .status-pill {
+      display: inline-block; font-size: 11px; font-weight: 600;
+      border-radius: 100px; padding: 3px 12px; letter-spacing: 0.04em;
+    }
+
+    /* ── List ── */
+    .list-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+    }
+    .list-head {
+      padding: 14px 20px; border-bottom: 1px solid var(--border);
+      font-size: 10px; font-weight: 600; color: var(--muted);
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .list-empty { padding: 24px; text-align: center; color: var(--muted); font-size: 12px; }
+    .list-item {
+      padding: 12px 20px; border-bottom: 1px solid var(--border2);
+      display: flex; gap: 12px; align-items: center;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .list-item:hover, .list-item.active { background: rgba(255,255,255,0.03); }
+    .list-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
+    }
+    .list-info { min-width: 0; flex: 1; }
+    .list-title { font-size: 13px; font-weight: 500; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .list-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .list-status { font-size: 10px; font-weight: 600; flex-shrink: 0; }
+
+    /* ── Loading / Error ── */
+    .loading {
+      padding: 40px; text-align: center; color: var(--muted); font-size: 13px;
+      grid-column: 1 / -1;
+    }
+    .spinner {
+      width: 24px; height: 24px; border: 2px solid var(--muted2); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-msg {
+      background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 12px; padding: 14px 18px; color: #FCA5A5; font-size: 12px;
+      text-align: center; margin-bottom: 20px; line-height: 1.6;
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 768px) {
+      .app { padding: 20px 14px 40px; }
+      .header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .layout { grid-template-columns: 1fr; }
+      .side { order: -1; }
+      .cal-cell { min-height: 64px; padding: 6px 4px; }
+      .cell-num { font-size: 11px; }
+      .ev-chip .chip-text { display: none; }
+      .ev-chip { padding: 3px 5px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="header-left">
+      <div class="header-icon">🎸</div>
+      <div>
+        <div class="header-sub">Schedule Management</div>
+        <div class="header-title">Band Schedule</div>
+      </div>
+    </div>
+    <button class="reload-btn" id="reloadBtn">↻ &nbsp;データを更新</button>
+  </div>
+
+  <div id="errorBar"></div>
+
+  <div class="filters" id="filters"></div>
+
+  <div class="layout">
+    <div class="cal">
+      <div class="cal-nav">
+        <button class="nav-btn" id="prevBtn">‹</button>
+        <div class="cal-nav-title" id="monthLabel"></div>
+        <button class="nav-btn" id="nextBtn">›</button>
+      </div>
+      <div class="cal-days">
+        <div class="cal-day-head sun">SUN</div>
+        <div class="cal-day-head">MON</div>
+        <div class="cal-day-head">TUE</div>
+        <div class="cal-day-head">WED</div>
+        <div class="cal-day-head">THU</div>
+        <div class="cal-day-head">FRI</div>
+        <div class="cal-day-head sat">SAT</div>
+      </div>
+      <div class="cal-grid" id="calGrid">
+        <div class="loading"><div class="spinner"></div>読み込み中...</div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div id="detailPanel"><div class="hint">予定をクリックして詳細表示</div></div>
+      <div class="list-card">
+        <div class="list-head" id="listHead">— 今月の予定 —</div>
+        <div id="listBody"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbz3nudsSdELM9Oh4T5NfMG_w1DQ4rB3RpgR0OgYHt4oMh3pACPwAhcS8eN2Yi7AEz1U/exec";
+
+const TYPE = {
+  practice:  { label:"リハ",           emoji:"🎵", color:"#3B82F6" },
+  live:      { label:"ライブ",          emoji:"🎤", color:"#EF4444" },
+  recording: { label:"レコーディング",  emoji:"🎙️", color:"#10B981" },
+  photo:     { label:"撮影",            emoji:"📸", color:"#F59E0B" },
+};
+const STATUS = {
+  "確定":   { color:"#10B981", bg:"rgba(16,185,129,0.12)" },
+  "調整中": { color:"#F59E0B", bg:"rgba(245,158,11,0.12)" },
+  "検討中": { color:"#6B7280", bg:"rgba(107,114,128,0.12)" },
+};
+const MONTHS = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"];
+const MONTHS_JP = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+const DAYS = ["日","月","火","水","木","金","土"];
+
+const todayD = new Date();
+let year = todayD.getFullYear(), month = todayD.getMonth();
+let filter = "all", selected = null, EVENTS = [];
+
+function pick(r, ...keys) {
+  for (const k of Object.keys(r)) {
+    const flat = k.replace(/\n.*/,"").trim();
+    if (keys.includes(flat) || keys.includes(k)) return String(r[k] ?? "").trim();
+  }
+  return "";
+}
+
+async function fetchEvents() {
+  document.getElementById("errorBar").innerHTML = "";
+  document.getElementById("calGrid").innerHTML = '<div class="loading"><div class="spinner"></div>読み込み中...</div>';
+  try {
+    const res = await fetch(API_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const raw = await res.json();
+    EVENTS = raw.map((r,i) => ({
+      id:     pick(r,"ID","id") || i+1,
+      date:   pick(r,"date","日付"),
+      type:   pick(r,"type","種別") || "practice",
+      title:  pick(r,"title","タイトル"),
+      place:  pick(r,"place","場所"),
+      start:  pick(r,"start","開始時間"),
+      end:    pick(r,"end","終了時間"),
+      cost:   pick(r,"cost","費用"),
+      status: pick(r,"status","ステータス") || "確定",
+      note:   pick(r,"note","メモ"),
+    })).filter(e => e.date && e.title);
+    renderAll();
+  } catch(e) {
+    document.getElementById("errorBar").innerHTML =
+      `<div class="error-msg">⚠️ データの読み込みに失敗しました。Apps ScriptのURLとデプロイ設定を確認してください。<br><small style="opacity:.6">${e.message}</small></div>`;
+    document.getElementById("calGrid").innerHTML = "";
+    renderAll();
+  }
+}
+
+function renderFilters() {
+  const c = document.getElementById("filters");
+  c.innerHTML = "";
+  [["all","すべて","🗓️","#6C63FF"],
+   ...Object.entries(TYPE).map(([k,v])=>[k,v.label,v.emoji,v.color])
+  ].forEach(([key,label,emoji,col]) => {
+    const b = document.createElement("button");
+    b.className = "fb" + (filter===key?" active":"");
+    if (filter===key) { b.style.background=col+"22"; b.style.borderColor=col+"66"; b.style.color=col; }
+    b.innerHTML = `<span>${emoji}</span>${label}`;
+    b.onclick = () => { filter=key; selected=null; renderAll(); };
+    c.appendChild(b);
+  });
+}
+
+function renderCalendar() {
+  document.getElementById("monthLabel").textContent = `${MONTHS[month]} ${year}`;
+  const grid = document.getElementById("calGrid");
+  grid.innerHTML = "";
+  const first = new Date(year,month,1).getDay();
+  const days  = new Date(year,month+1,0).getDate();
+
+  for (let i=0;i<first;i++) {
+    const d=document.createElement("div"); d.className="cal-cell empty";
+    grid.appendChild(d);
+  }
+  for (let d=1;d<=days;d++) {
+    const ds=`${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const col=(first+d-1)%7;
+    const isT=todayD.getFullYear()===year&&todayD.getMonth()===month&&todayD.getDate()===d;
+    const evs=EVENTS.filter(e=>e.date===ds&&(filter==="all"||e.type===filter));
+
+    const cell=document.createElement("div");
+    cell.className="cal-cell"+(isT?" today-bg":"");
+
+    const numCls="cell-num"+(isT?" today":col===0?" sun":col===6?" sat":"");
+    const numHtml=isT?`<span class="today-dot">${d}</span>`:d;
+
+    const chipsHtml=evs.map(ev=>{
+      const t=TYPE[ev.type]||TYPE.practice;
+      const sel=selected&&selected.id==ev.id;
+      // 改行を保持しつつ表示
+      const titleHtml = ev.title.replace(/\n/g,"<br>");
+      return `<div class="ev-chip${sel?" sel":""}" style="background:${t.color}CC" data-id="${ev.id}">
+        <span class="chip-emoji">${t.emoji}</span>
+        <span class="chip-text">${titleHtml}</span>
+      </div>`;
+    }).join("");
+
+    cell.innerHTML=`<div class="${numCls}">${numHtml}</div><div class="ev-list">${chipsHtml}</div>`;
+    cell.querySelectorAll(".ev-chip").forEach(el=>{
+      el.addEventListener("click",()=>{
+        const ev=EVENTS.find(e=>e.id==el.dataset.id);
+        selected=(selected&&selected.id==ev.id)?null:ev;
+        renderAll();
+      });
+    });
+    grid.appendChild(cell);
+  }
+}
+
+function renderDetail() {
+  const p=document.getElementById("detailPanel");
+  if (!selected) { p.innerHTML=`<div class="hint">予定をクリックして詳細表示</div>`; return; }
+  const ev=selected, t=TYPE[ev.type]||TYPE.practice, s=STATUS[ev.status]||STATUS["確定"];
+  p.innerHTML=`
+    <div class="detail" style="border:1px solid ${t.color}33">
+      <div class="detail-head" style="background:linear-gradient(135deg,${t.color}22,${t.color}08)">
+        <div>
+          <div class="detail-type-label" style="color:${t.color}">${t.emoji} ${t.label}</div>
+          <div class="detail-title">${ev.title.replace(/\n/g,"<br>")}</div>
+          <div class="detail-date">${ev.date}（${DAYS[new Date(ev.date).getDay()]}）</div>
+        </div>
+        <button class="close-btn" id="closeBtn">✕</button>
+      </div>
+      <div class="detail-body">
+        <div class="detail-row">
+          <div class="detail-label">📍 場所</div>
+          <div class="detail-val">${ev.place||"—"}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">⏰ 時間</div>
+          <div class="detail-val">${ev.start||"—"} 〜 ${ev.end||"—"}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">💰 費用</div>
+          <div class="detail-val">${ev.cost||"—"}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">📌 ステータス</div>
+          <span class="status-pill" style="color:${s.color};background:${s.bg}">${ev.status}</span>
+        </div>
+        ${ev.note?`<div class="detail-row"><div class="detail-label">📝 メモ</div><div class="detail-val" style="white-space:pre-line">${ev.note}</div></div>`:""}
+      </div>
+    </div>`;
+  document.getElementById("closeBtn").onclick=()=>{selected=null;renderAll();};
+}
+
+function renderList() {
+  const evs=EVENTS
+    .filter(e=>{const d=new Date(e.date);return d.getFullYear()===year&&d.getMonth()===month;})
+    .filter(e=>filter==="all"||e.type===filter)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  document.getElementById("listHead").textContent=`${MONTHS_JP[month]}の予定 — ${evs.length}件`;
+  const body=document.getElementById("listBody");
+  if (!evs.length){body.innerHTML=`<div class="list-empty">予定はありません</div>`;return;}
+  body.innerHTML=evs.map(ev=>{
+    const t=TYPE[ev.type]||TYPE.practice, s=STATUS[ev.status]||STATUS["確定"];
+    return `<div class="list-item${selected&&selected.id==ev.id?" active":""}" data-id="${ev.id}">
+      <div class="list-icon" style="background:${t.color}18">${t.emoji}</div>
+      <div class="list-info">
+        <div class="list-title">${ev.title.replace(/\n/g,' / ')}</div>
+        <div class="list-sub">${new Date(ev.date).getDate()}日 ${ev.start}〜 · ${ev.place}</div>
+      </div>
+      <span class="list-status" style="color:${s.color}">${ev.status}</span>
+    </div>`;
+  }).join("");
+  body.querySelectorAll(".list-item").forEach(el=>{
+    el.addEventListener("click",()=>{
+      const ev=EVENTS.find(e=>e.id==el.dataset.id);
+      selected=(selected&&selected.id==ev.id)?null:ev;
+      renderAll();
+    });
+  });
+}
+
+function renderAll(){renderFilters();renderCalendar();renderDetail();renderList();}
+
+document.getElementById("prevBtn").onclick=()=>{if(month===0){year--;month=11;}else month--;selected=null;renderAll();};
+document.getElementById("nextBtn").onclick=()=>{if(month===11){year++;month=0;}else month++;selected=null;renderAll();};
+document.getElementById("reloadBtn").onclick=fetchEvents;
+
+fetchEvents();
+</script>
+</body>
+</html>
